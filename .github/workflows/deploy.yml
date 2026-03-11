@@ -47,9 +47,12 @@ jobs:
           set: |
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
-            front.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/front:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/front:${{ steps.vars.outputs.sha_short }}
-            back.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/back:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/back:${{ steps.vars.outputs.sha_short }}
-            proxy.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/proxy:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/proxy:${{ steps.vars.outputs.sha_short }}
+            front.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/front:latest
+            front.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/front:${{ steps.vars.outputs.sha_short }}
+            back.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/back:latest
+            back.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/back:${{ steps.vars.outputs.sha_short }}
+            proxy.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/proxy:latest
+            proxy.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/proxy:${{ steps.vars.outputs.sha_short }}
 
 #  deploy:
 #    needs: build-and-push
