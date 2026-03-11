@@ -1,0 +1,22 @@
+services:
+
+  front:
+    image: ghcr.io/${GITHUB_USER_NAME}/${PROJECT_NAME}/front:latest
+    environment:
+      NODE_ENV: production
+
+  back:
+    image: ghcr.io/${GITHUB_USER_NAME}/${PROJECT_NAME}/back:latest
+    environment:
+      NODE_ENV: production
+    volumes:
+      - back_strapi_db:/app/.tmp
+      - back_strapi_uploads:/app/public/uploads
+
+  proxy:
+    image: ghcr.io/${GITHUB_USER_NAME}/${PROJECT_NAME}/proxy:latest
+    build: !reset null
+
+volumes:
+  back_strapi_db:
+  back_strapi_uploads:
