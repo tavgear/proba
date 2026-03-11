@@ -55,42 +55,42 @@ jobs:
             back.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/back:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/back:${{ steps.vars.outputs.sha_short }}
             proxy.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/proxy:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/proxy:${{ steps.vars.outputs.sha_short }}
 
-  deploy:
-    needs: build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ACT != 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code (for compose files)
-        uses: actions/checkout@v4
-
-      - name: Copy compose files via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "compose.yaml,compose.prod.yaml"
-          target: ${{ secrets.REMOTE_TARGET }}
-
-      - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ${{ secrets.REMOTE_TARGET }}
-            
-            # Авторизация в GHCR на сервере
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            # Подготовка окружения
-            echo "${{ secrets.PROD_ENV }}" > .env
-            echo "MODE=prod" > .env.local
-            
-            # Загрузка новых образов и перезапуск
-            docker compose -f compose.yaml -f compose.prod.yaml pull
-            docker compose -f compose.yaml -f compose.prod.yaml up -d --remove-orphans
-            
-            # Очистка старых данных
-            docker image prune -f
+#  deploy:
+#    needs: build-and-push
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ACT != 'true'
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout code (for compose files)
+#        uses: actions/checkout@v4
+#
+#      - name: Copy compose files via SCP
+#        uses: appleboy/scp-action@v0.1.7
+#        with:
+#          host: ${{ secrets.SSH_HOST }}
+#          username: ${{ secrets.SSH_USER }}
+#          key: ${{ secrets.SSH_PRIVATE_KEY }}
+#          source: "compose.yaml,compose.prod.yaml"
+#          target: ${{ secrets.REMOTE_TARGET }}
+#
+#      - name: Deploy to Server via SSH
+#        uses: appleboy/ssh-action@v1.0.3
+#        with:
+#          host: ${{ secrets.SSH_HOST }}
+#          username: ${{ secrets.SSH_USER }}
+#          key: ${{ secrets.SSH_PRIVATE_KEY }}
+#          script: |
+#            cd ${{ secrets.REMOTE_TARGET }}
+#            
+#            # Авторизация в GHCR на сервере
+#            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+#            
+#            # Подготовка окружения
+#            echo "${{ secrets.PROD_ENV }}" > .env
+#            echo "MODE=prod" > .env.local
+#            
+#            # Загрузка новых образов и перезапуск
+#            docker compose -f compose.yaml -f compose.prod.yaml pull
+#            docker compose -f compose.yaml -f compose.prod.yaml up -d --remove-orphans
+#            
+#            # Очистка старых данных
+#            docker image prune -f
