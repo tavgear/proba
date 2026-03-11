@@ -1,0 +1,18 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tags2",
+  "info": {
+    "singularName": "tags1",
+    "pluralName": "tags2",
+    "displayName": "Tags"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    }
+  }
+}

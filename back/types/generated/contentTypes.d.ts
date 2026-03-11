@@ -430,6 +430,36 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiArticles1Articles1 extends Struct.CollectionTypeSchema {
+  collectionName: 'articles2';
+  info: {
+    displayName: 'Articles';
+    pluralName: 'articles2';
+    singularName: 'articles1';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::articles1.articles1'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    tags: Schema.Attribute.Relation<'oneToMany', 'api::tags1.tags1'>;
+    Text: Schema.Attribute.RichText;
+    Title: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiDfrtgyhertyhrtHrthrthDfrtgyhertyhrtHrthrth
   extends Struct.SingleTypeSchema {
   collectionName: 'dfrtgyhertyhrt_hrthrths';
@@ -452,6 +482,31 @@ export interface ApiDfrtgyhertyhrtHrthrthDfrtgyhertyhrtHrthrth
       'api::dfrtgyhertyhrt-hrthrth.dfrtgyhertyhrt-hrthrth'
     > &
       Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiTags1Tags1 extends Struct.CollectionTypeSchema {
+  collectionName: 'tags2';
+  info: {
+    displayName: 'Tags';
+    pluralName: 'tags2';
+    singularName: 'tags1';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::tags1.tags1'> &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -970,7 +1025,9 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::articles1.articles1': ApiArticles1Articles1;
       'api::dfrtgyhertyhrt-hrthrth.dfrtgyhertyhrt-hrthrth': ApiDfrtgyhertyhrtHrthrthDfrtgyhertyhrtHrthrth;
+      'api::tags1.tags1': ApiTags1Tags1;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;
