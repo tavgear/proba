@@ -1,0 +1,8 @@
+# IDE
+.idea/
+.junie/
+.aiignore
+
+# Local environment
+.env.local
+

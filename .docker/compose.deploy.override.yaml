@@ -1,0 +1,18 @@
+services:
+
+  front:
+    image: ghcr.io/${GITHUB_USER_NAME}/${PROJECT_NAME}-front:latest
+    build: !reset null
+    environment:
+      NODE_ENV: production
+
+  back:
+    image: ghcr.io/${GITHUB_USER_NAME}/${PROJECT_NAME}-back:latest
+    build: !reset null
+    environment:
+      NODE_ENV: production
+
+  db:
+    image: ghcr.io/${GITHUB_USER_NAME}/${PROJECT_NAME}-db:latest
+    build: !reset null
+
