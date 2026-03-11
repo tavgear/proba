@@ -17,7 +17,7 @@ services:
 
   back:
     build:
-      dockerfile: ./.docker/dev/front/Dockerfile
+      dockerfile: ./.docker/dev/back/Dockerfile
       args:
         UID: ${DEV_USER_ID}
         UNAME: ${DEV_USER_NAME}
