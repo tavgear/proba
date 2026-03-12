@@ -82,7 +82,7 @@ jobs:
           host: ${{ secrets.DOMAIN }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "compose.yaml,compose.deploy.override.yaml,.env"
+          source: "compose.yaml,compose.deploy.override.yaml,.env,bin/manage.sh"
           target: ${{ secrets.REMOTE_TARGET }}
 
       - name: Deploy to Server via SSH
@@ -102,9 +102,6 @@ jobs:
               mv compose.deploy.override.yaml compose.override.yaml
             fi
 
-            # Гарантируем наличие .env.local
-            touch .env.local
-
             # Обновление DOMAIN в .env.local на основе секрета DOMAIN
             if grep -q "DOMAIN=" .env.local; then
               sed -i "s/^DOMAIN=.*/DOMAIN=${{ secrets.DOMAIN }} # Generated from GitHub Secret/" .env.local
@@ -120,10 +117,9 @@ jobs:
               echo "SHA_SHORT=${{ needs.prepare.outputs.sha_short }} # Deployed at $DEPLOY_DATE" >> .env.local
             fi
 
-            # Загрузка новых образов и перезапуск
-            # Теперь docker compose сам подтянет .env и compose.override.yaml
-            docker compose pull
-            docker compose up -d --remove-orphans
+            # Загрузка новых образов и перезапуск через наш скрипт
+            ./bin/manage.sh pull
+            ./bin/manage.sh up
 
             # Очистка старых данных
             docker image prune -af
