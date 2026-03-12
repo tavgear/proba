@@ -8,18 +8,18 @@ usage() {
     local exit_code=${1:-0}
     echo "Usage: $0 <dev|prod> [command]"
     echo "       $0 <dev|prod> init [back|front]"
+    echo "ps                  - List running containers"
     echo ""
-    echo "Mode (dev or prod) must be specified first for all commands."
+    echo "Mode (dev or prod) must be specified first for all others commands."
     echo ""
     echo "Commands:"
     echo "  init [back|front] - Initialize project (folders, .env.local secrets) for the given mode"
-    echo "  up              - Start containers (detached)"
-    echo "  build           - Build images"
-    echo "  down            - Stop containers"
-    echo "  restart         - Restart containers"
-    echo "  pull            - Pull latest images (PROD only)"
-    echo "  logs            - Show logs (tail 100)"
-    echo "  ps              - List running containers"
+    echo "  up                - Start containers (detached)"
+    echo "  build             - Build images"
+    echo "  down              - Stop containers"
+    echo "  restart           - Restart containers"
+    echo "  pull              - Pull latest images (PROD only)"
+    echo "  logs              - Show logs (tail 100)"
     exit "$exit_code"
 }
 
@@ -30,6 +30,9 @@ if [[ "$1" == "dev" || "$1" == "prod" ]]; then
     COMMAND=$1
 elif [[ "$1" =~ ^(help|--help|-h)$ ]] || [ -z "$1" ]; then
     usage 0
+elif [[ "$1" =~ ^(ps)$ ]] || [ -z "$1" ]; then
+    docker ps
+    exit 1
 else
     echo "Error: First argument must be 'dev' or 'prod' (or 'help')."
     echo "Usage: $0 <dev|prod> <command>"
@@ -56,17 +59,11 @@ get_env_val() {
 }
 
 PROJECT_NAME=$(get_env_val PROJECT_NAME)
-PROJECT_NAME=${PROJECT_NAME:-project}
 DOMAIN=$(get_env_val DOMAIN)
-DOMAIN=${DOMAIN:-localhost}
 HTTP_PORT=$(get_env_val HTTP_PORT)
-HTTP_PORT=${HTTP_PORT:-80}
 HTTPS_PORT=$(get_env_val HTTPS_PORT)
-HTTPS_PORT=${HTTPS_PORT:-443}
 BACK_HTTP_PORT=$(get_env_val BACK_HTTP_PORT)
-BACK_HTTP_PORT=${BACK_HTTP_PORT:-1337}
 BACK_HTTP_PORT_EXT=$(get_env_val BACK_HTTP_PORT_EXT)
-BACK_HTTP_PORT_EXT=${BACK_HTTP_PORT_EXT:-5173}
 
 # Функция для вывода заголовка (аналогично Makefile)
 print_header() {
@@ -76,7 +73,7 @@ print_header() {
     echo "============================="
     echo "  PROJECT:       $PROJECT_NAME"
     echo "  MODE:          $MODE"
-    echo "  DOMAIN:        http://$DOMAIN"
+    echo "  DOMAIN:        http://$DOMAIN:$HTTP_PORT"
     echo "============================="
 }
 
@@ -289,8 +286,6 @@ case "$COMMAND" in
         run_compose pull ;;
     logs)
         run_compose logs -f --tail=100 ;;
-    ps)
-        run_compose ps ;;
     *)
         usage 1 ;;
 esac
