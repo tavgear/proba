@@ -79,7 +79,7 @@ jobs:
       - name: Copy compose files via SCP
         uses: appleboy/scp-action@v1.0.0
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host: ${{ secrets.DOMAIN }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "compose.yaml,compose.deploy.override.yaml,.env"
@@ -88,7 +88,7 @@ jobs:
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.2.5
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host: ${{ secrets.DOMAIN }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
@@ -104,6 +104,13 @@ jobs:
 
             # Гарантируем наличие .env.local
             touch .env.local
+
+            # Обновление DOMAIN в .env.local на основе секрета DOMAIN
+            if grep -q "DOMAIN=" .env.local; then
+              sed -i "s/^DOMAIN=.*/DOMAIN=${{ secrets.DOMAIN }} # Generated from GitHub Secret/" .env.local
+            else
+              echo "DOMAIN=${{ secrets.DOMAIN }} # Generated from GitHub Secret" >> .env.local
+            fi
 
             # Обновление SHA_SHORT в .env.local с датой деплоя
             DEPLOY_DATE=$(date '+%Y-%m-%d %H:%M:%S')
