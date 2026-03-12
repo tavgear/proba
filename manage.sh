@@ -6,9 +6,13 @@ set -e
 # Функция для вывода помощи
 usage() {
     local exit_code=${1:-0}
-    echo "Usage: $0 [command]"
+    echo "Usage: $0 <dev|prod> [command]"
+    echo "       $0 <dev|prod> init [back|front]"
+    echo ""
+    echo "Mode (dev or prod) must be specified first for all commands."
+    echo ""
     echo "Commands:"
-    echo "  init <dev|prod> [back|front] - Initialize project (folders, .env.local secrets)"
+    echo "  init [back|front] - Initialize project (folders, .env.local secrets) for the given mode"
     echo "  up              - Start containers (detached)"
     echo "  build           - Build images"
     echo "  down            - Stop containers"
@@ -19,80 +23,87 @@ usage() {
     exit "$exit_code"
 }
 
-# 1. Загрузка переменных окружения
-load_env() {
-    local file=$1
-    if [ -f "$file" ]; then
-        # Читаем файл построчно, игнорируя комментарии и пустые строки
-        while read -r line || [ -n "$line" ]; do
-            # Убираем пробелы в начале и конце
-            line=$(echo "$line" | xargs)
-            # Пропускаем пустые строки и комментарии
-            [[ -z "$line" ]] && continue
-            [[ "$line" == "#"* ]] && continue
-            
-            # Парсим ключ и значение (поддерживаем и : и =)
-            if [[ "$line" == *":"* ]]; then
-                key=$(echo "${line%%:*}" | xargs)
-                value=$(echo "${line#*:}" | xargs)
-            elif [[ "$line" == *"="* ]]; then
-                key=$(echo "${line%%=*}" | xargs)
-                value=$(echo "${line#*=}" | xargs)
-            else
-                continue
+# 2. Определение режима и команды
+if [[ "$1" == "dev" || "$1" == "prod" ]]; then
+    MODE=$1
+    shift
+    COMMAND=$1
+elif [[ "$1" =~ ^(help|--help|-h)$ ]] || [ -z "$1" ]; then
+    usage 0
+else
+    echo "Error: First argument must be 'dev' or 'prod' (or 'help')."
+    echo "Usage: $0 <dev|prod> <command>"
+    exit 1
+fi
+
+# Функция для получения переменной из файлов .env/.env.local (в стиле Docker Compose: последний найденный побеждает)
+get_env_val() {
+    local key=$1
+    local val=""
+    # Проверяем файлы в порядке переопределения
+    for f in .env .env.local; do
+        if [ -f "$f" ]; then
+            # Ищем ключ, игнорируя комментарии, берем последнее вхождение
+            local found=$(grep -E "^$key[:=]" "$f" | tail -n 1)
+            if [ -n "$found" ]; then
+                # Удаляем ключ, разделитель, пробелы и символ \r
+                val=$(echo "$found" | sed -E "s/^$key[:=]//" | tr -d '\r' | xargs)
             fi
-            
-            # Экспортируем переменную
-            export "$key=$value"
-        done < "$file"
-    fi
+        fi
+    done
+    echo "$val"
 }
 
-load_env .env
-load_env .env.local
-
-# 2. Определение режима (dev по умолчанию)
-MODE=${MODE:-dev}
+PROJECT_NAME=$(get_env_val PROJECT_NAME)
+PROJECT_NAME=${PROJECT_NAME:-project}
+DOMAIN=$(get_env_val DOMAIN)
 DOMAIN=${DOMAIN:-localhost}
 
 # Функция для вывода заголовка (аналогично Makefile)
 print_header() {
     # Не выводим заголовок при помощи
-    if [[ "$1" =~ ^(help|--help|-h)$ ]]; then return; fi
+    if [[ "$COMMAND" =~ ^(help|--help|-h)$ ]]; then return; fi
     
     echo "============================="
-    echo "  PROJECT:       ${PROJECT_NAME:-project}"
+    echo "  PROJECT:       $PROJECT_NAME"
     echo "  MODE:          $MODE"
     echo "  DOMAIN:        http://$DOMAIN"
     echo "============================="
 }
 
 # Вывод заголовка при запуске (кроме вызова помощи)
-print_header "$1"
+print_header
 
 # 3. Проверка наличия .env.local (обязательно для всех команд, кроме help и init)
-if [[ ! "$1" =~ ^(help|--help|-h|init)$ ]]; then
+if [[ ! "$COMMAND" =~ ^(help|--help|-h|init)$ ]]; then
     if [ ! -f .env.local ]; then
         echo "Error: .env.local not found. Please run './manage.sh init <dev|prod>' first."
         exit 1
     fi
 fi
 
-# 4. Формирование команды docker compose
-COMPOSE="docker compose --env-file .env --env-file .env.local"
+# 4. Формирование списка файлов docker compose
+COMPOSE_FILES=""
 
 if [ "$MODE" == "dev" ]; then
     # В режиме разработки подключаем базовый и dev файлы
-    COMPOSE="$COMPOSE -f compose.yaml -f compose.dev.yaml"
+    COMPOSE_FILES="-f compose.yaml -f compose.dev.yaml"
 elif [ "$MODE" == "prod" ]; then
     # В режиме продакшена:
-    # 1. Если есть compose.prod.yaml (локальная отладка), подключаем его явно
-    if [ -f "compose.prod.yaml" ]; then
-        COMPOSE="$COMPOSE -f compose.yaml -f compose.prod.yaml"
+    # 1. Базовый и prod файл (локально или сервер)
+    COMPOSE_FILES="-f compose.yaml -f compose.prod.yaml"
+    
+    # 2. Если папки .docker нет — это сервер (deploy)
+    if [ ! -d ".docker" ]; then
+        COMPOSE_FILES="$COMPOSE_FILES -f compose.deploy.yaml"
     fi
-    # 2. Если его нет (сервер), не указываем файлы вообще. 
-    # Docker автоматически подхватит compose.yaml и compose.override.yaml (если есть).
 fi
+
+# Функция для выполнения docker compose команд
+run_compose() {
+    # Собираем команду из бинарника и файлов, затем добавляем аргументы
+    docker compose --env-file .env --env-file .env.local $COMPOSE_FILES "$@"
+}
 
 # Функция генерации секретов
 generate_secrets() {
@@ -137,13 +148,6 @@ STRAPI_ENCRYPTION_KEY=$STRAPI_ENCRYPTION_KEY
 
 # --- DEFAULT SETTINGS ---
 EOF
-    fi
-
-    # Обновление режима в .env.local (игнорируя текущее значение)
-    if grep -q "^MODE=" .env.local; then
-        sed -i "s/^MODE=.*/MODE=dev/" .env.local
-    else
-        echo "MODE=dev" >> .env.local
     fi
 
     # Добавляем секреты если их нет (например если файл был создан вручную или старым скриптом)
@@ -233,63 +237,44 @@ STRAPI_ADMIN_JWT_SECRET=$STRAPI_ADMIN_JWT_SECRET
 STRAPI_JWT_SECRET=$STRAPI_JWT_SECRET
 STRAPI_TRANSFER_TOKEN_SALT=$STRAPI_TRANSFER_TOKEN_SALT
 STRAPI_ENCRYPTION_KEY=$STRAPI_ENCRYPTION_KEY
-
-# --- DEFAULT SETTINGS ---
-MODE=prod
 EOF
         echo "[OK] .env.local created. PLEASE EDIT REQUIRED FIELDS!"
     else
-        echo "[!] .env.local already exists. Updating mode settings to PROD."
-    # Обновление режима в .env.local
-    if grep -q "^MODE=" .env.local; then
-        sed -i "s/^MODE=.*/MODE=prod/" .env.local
-    else
-        echo "MODE=prod" >> .env.local
-    fi
+        echo "[!] .env.local already exists."
     fi
 }
 
-case "$1" in
+case "$COMMAND" in
     help|--help|-h)
         usage 0 ;;
     init)
-        MODE_ARG=$2
-        TARGET_ARG=${3:-all}
+        TARGET_ARG=${2:-all}
 
-        if [ -z "$MODE_ARG" ]; then
-            echo "Error: 'init' requires mode argument (dev|prod)."
-            echo "Usage: $0 init <dev|prod> [back|front]"
-            exit 1
-        fi
-
-        if [ "$MODE_ARG" == "dev" ]; then
+        if [ "$MODE" == "dev" ]; then
             init_dev "$TARGET_ARG"
-        elif [ "$MODE_ARG" == "prod" ]; then
+        elif [ "$MODE" == "prod" ]; then
             init_prod
-        else
-            echo "Unknown mode: $MODE_ARG. Use 'dev' or 'prod'."
-            exit 1
         fi
         ;;
     up)
-        $COMPOSE up -d --remove-orphans ;;
+        run_compose up -d --remove-orphans ;;
     build)
-        $COMPOSE build ;;
+        run_compose build ;;
     down)
-        $COMPOSE down ;;
+        run_compose down ;;
     restart)
-        $COMPOSE restart ;;
+        run_compose restart ;;
     pull)
         if [ "$MODE" == "dev" ]; then
             echo "[!] 'pull' command is disabled in DEV mode."
             echo "    Use 'build' to rebuild images locally or 'up' to start project."
             exit 0
         fi
-        $COMPOSE pull ;;
+        run_compose pull ;;
     logs)
-        $COMPOSE logs -f --tail=100 ;;
+        run_compose logs -f --tail=100 ;;
     ps)
-        $COMPOSE ps ;;
+        run_compose ps ;;
     *)
         usage 1 ;;
 esac

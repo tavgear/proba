@@ -1,22 +1,16 @@
+name: ${PROJECT_NAME}-public
+
 services:
 
   front:
     image: ghcr.io/${GITHUB_USER_NAME}/${PROJECT_NAME}-front:${SHA_SHORT:-latest}
-    environment:
-      NODE_ENV: production
+    build: !reset null
 
   back:
     image: ghcr.io/${GITHUB_USER_NAME}/${PROJECT_NAME}-back:${SHA_SHORT:-latest}
-    environment:
-      NODE_ENV: production
-    volumes:
-      - back_strapi_db:/app/.tmp
-      - back_strapi_uploads:/app/public/uploads
+    build: !reset null
 
   proxy:
     image: ghcr.io/${GITHUB_USER_NAME}/${PROJECT_NAME}-proxy:${SHA_SHORT:-latest}
     build: !reset null
 
-volumes:
-  back_strapi_db:
-  back_strapi_uploads:
