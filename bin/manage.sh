@@ -19,15 +19,55 @@ usage() {
 }
 
 # 1. Загрузка переменных окружения
-if [ -f .env ]; then
-    export "$(grep -v '^#' .env | xargs)"
-fi
-if [ -f .env.local ]; then
-    export "$(grep -v '^#' .env.local | xargs)"
-fi
+load_env() {
+    local file=$1
+    if [ -f "$file" ]; then
+        # Читаем файл построчно, игнорируя комментарии и пустые строки
+        while read -r line || [ -n "$line" ]; do
+            # Убираем пробелы в начале и конце
+            line=$(echo "$line" | xargs)
+            # Пропускаем пустые строки и комментарии
+            [[ -z "$line" ]] && continue
+            [[ "$line" == "#"* ]] && continue
+            
+            # Парсим ключ и значение (поддерживаем и : и =)
+            if [[ "$line" == *":"* ]]; then
+                key=$(echo "${line%%:*}" | xargs)
+                value=$(echo "${line#*:}" | xargs)
+            elif [[ "$line" == *"="* ]]; then
+                key=$(echo "${line%%=*}" | xargs)
+                value=$(echo "${line#*=}" | xargs)
+            else
+                continue
+            fi
+            
+            # Экспортируем переменную
+            export "$key=$value"
+        done < "$file"
+    fi
+}
+
+load_env .env
+load_env .env.local
 
 # 2. Определение режима (dev по умолчанию)
 MODE=${MODE:-dev}
+DOMAIN=${DOMAIN:-localhost}
+
+# Функция для вывода заголовка (аналогично Makefile)
+print_header() {
+    # Не выводим заголовок при помощи
+    if [[ "$1" =~ ^(help|--help|-h)$ ]]; then return; fi
+    
+    echo "============================="
+    echo "  PROJECT:       ${PROJECT_NAME:-project}"
+    echo "  MODE:          $MODE"
+    echo "  DOMAIN:        http://$DOMAIN"
+    echo "============================="
+}
+
+# Вывод заголовка при запуске (кроме вызова помощи)
+print_header "$1"
 
 # 3. Проверка наличия .env.local (обязательно для всех команд, кроме help и init)
 if [[ ! "$1" =~ ^(help|--help|-h|init)$ ]]; then
