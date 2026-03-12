@@ -124,6 +124,19 @@ init_dev() {
     # Системные файлы
     if [ ! -f .env.local ]; then
         touch .env.local
+        echo "[+] Creating .env.local for DEV..."
+        generate_secrets
+        cat <<EOF >> .env.local
+# --- AUTO-GENERATED SECRETS ---
+STRAPI_APP_KEYS=$STRAPI_APP_KEYS
+STRAPI_API_TOKEN_SALT=$STRAPI_API_TOKEN_SALT
+STRAPI_ADMIN_JWT_SECRET=$STRAPI_ADMIN_JWT_SECRET
+STRAPI_JWT_SECRET=$STRAPI_JWT_SECRET
+STRAPI_TRANSFER_TOKEN_SALT=$STRAPI_TRANSFER_TOKEN_SALT
+STRAPI_ENCRYPTION_KEY=$STRAPI_ENCRYPTION_KEY
+
+# --- DEFAULT SETTINGS ---
+EOF
     fi
 
     # Обновление режима в .env.local (игнорируя текущее значение)
@@ -136,6 +149,20 @@ init_dev() {
         sed -i "s/^MODE_NODE_ENV=.*/MODE_NODE_ENV=development/" .env.local
     else
         echo "MODE_NODE_ENV=development" >> .env.local
+    fi
+
+    # Добавляем секреты если их нет (например если файл был создан вручную или старым скриптом)
+    if ! grep -q "^STRAPI_APP_KEYS=" .env.local; then
+        echo "[+] Adding missing secrets to .env.local..."
+        generate_secrets
+        cat <<EOF >> .env.local
+STRAPI_APP_KEYS=$STRAPI_APP_KEYS
+STRAPI_API_TOKEN_SALT=$STRAPI_API_TOKEN_SALT
+STRAPI_ADMIN_JWT_SECRET=$STRAPI_ADMIN_JWT_SECRET
+STRAPI_JWT_SECRET=$STRAPI_JWT_SECRET
+STRAPI_TRANSFER_TOKEN_SALT=$STRAPI_TRANSFER_TOKEN_SALT
+STRAPI_ENCRYPTION_KEY=$STRAPI_ENCRYPTION_KEY
+EOF
     fi
 
     # Инициализация бэкенда
