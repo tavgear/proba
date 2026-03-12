@@ -21,5 +21,5 @@ WORKDIR /app
 
 USER ${UID}
 
-# Start Next.js in development mode
+# Start Next.js in development
 CMD ["npm", "run", "dev"]

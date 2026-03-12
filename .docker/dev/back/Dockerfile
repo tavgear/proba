@@ -15,5 +15,5 @@ WORKDIR /app
 
 USER ${UID}
 
-# Start Strapi in development mode
+# Start Strapi in development
 CMD ["npm", "run", "develop"]

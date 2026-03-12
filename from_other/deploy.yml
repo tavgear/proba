@@ -1,9 +1,0 @@
-name: Deploy
-
-on: push
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses:
