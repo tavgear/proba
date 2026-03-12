@@ -44,10 +44,11 @@ get_env_val() {
     for f in .env .env.local; do
         if [ -f "$f" ]; then
             # Ищем ключ, игнорируя комментарии, берем последнее вхождение
-            local found=$(grep -E "^$key[:=]" "$f" | tail -n 1)
+            local found
+            found=$(grep -E "^${key}[:=]" "$f" | tail -n 1)
             if [ -n "$found" ]; then
                 # Удаляем ключ, разделитель, пробелы и символ \r
-                val=$(echo "$found" | sed -E "s/^$key[:=]//" | tr -d '\r' | xargs)
+                val=$(echo "$found" | sed -E "s/^${key}[:=]//" | tr -d '\r' | xargs)
             fi
         fi
     done
@@ -102,6 +103,7 @@ fi
 # Функция для выполнения docker compose команд
 run_compose() {
     # Собираем команду из бинарника и файлов, затем добавляем аргументы
+    # shellcheck disable=SC2086
     docker compose --env-file .env --env-file .env.local $COMPOSE_FILES "$@"
 }
 
