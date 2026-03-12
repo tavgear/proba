@@ -142,12 +142,31 @@ init_dev() {
         fi
     fi
 
+    if [ ! -f ".env" ]; then
+        echo "[!] Error: .env file is missing. Please ensure it exists."
+        exit 1
+    fi
+
     # Системные файлы
     if [ ! -f .env.local ]; then
         touch .env.local
         echo "[+] Creating .env.local for DEV..."
         generate_secrets
         cat <<EOF >> .env.local
+
+# --- REQUIRED: EDIT MANUALLY ---
+PROJECT_NAME=
+GITHUB_USER_NAME=
+DOMAIN=
+
+# Front network settings
+HTTP_PORT=$HTTP_PORT
+HTTPS_PORT=$HTTPS_PORT
+
+# Back network setting
+BACK_HTTP_PORT=$BACK_HTTP_PORT
+BACK_HTTP_PORT_EXT=$BACK_HTTP_PORT_EXT
+
 # --- AUTO-GENERATED SECRETS ---
 STRAPI_APP_KEYS=$STRAPI_APP_KEYS
 STRAPI_API_TOKEN_SALT=$STRAPI_API_TOKEN_SALT
@@ -155,12 +174,6 @@ STRAPI_ADMIN_JWT_SECRET=$STRAPI_ADMIN_JWT_SECRET
 STRAPI_JWT_SECRET=$STRAPI_JWT_SECRET
 STRAPI_TRANSFER_TOKEN_SALT=$STRAPI_TRANSFER_TOKEN_SALT
 STRAPI_ENCRYPTION_KEY=$STRAPI_ENCRYPTION_KEY
-
-# --- DEFAULT SETTINGS ---
-HTTP_PORT=$HTTP_PORT
-HTTPS_PORT=$HTTPS_PORT
-BACK_HTTP_PORT=$BACK_HTTP_PORT
-BACK_HTTP_PORT_EXT=$BACK_HTTP_PORT_EXT
 EOF
     fi
 
@@ -211,12 +224,9 @@ init_prod() {
         exit 0
     fi
 
-    # 1. Скопировать базовый .env (если он нужен, но обычно он есть в репо)
-    # По условию: "Скопировать из репо базовый енв-файл с настройками по умолчанию"
-    # Вероятно имеется ввиду что если файла .env нет, его надо создать как копию .env.example или просто убедиться в его наличии.
-    # Но так как .env уже есть в корне, я просто проверю его наличие.
     if [ ! -f ".env" ]; then
-        echo "[!] Warning: .env file is missing. Please ensure it exists."
+        echo "[!] Error: .env file is missing. Please ensure it exists."
+        exit 1
     fi
 
     # 2. Сформировать .env.local с секретами и переменными для ручной правки
