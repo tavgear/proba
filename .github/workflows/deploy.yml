@@ -7,12 +7,30 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-#  FRONT_IMAGE: ghcr.io/${{ github.repository }}-front
-#  BACK_IMAGE: ghcr.io/${{ github.repository }}-back
-#  PROXY_IMAGE: ghcr.io/${{ github.repository }}-proxy
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      sha_short: ${{ steps.vars.outputs.sha_short }}
+      front_image: ${{ steps.images.outputs.front_image }}
+      back_image: ${{ steps.images.outputs.back_image }}
+      proxy_image: ${{ steps.images.outputs.proxy_image }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Set short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Define image paths
+        id: images
+        run: |
+          echo "front_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-front" >> $GITHUB_OUTPUT
+          echo "back_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-back" >> $GITHUB_OUTPUT
+          echo "proxy_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-proxy" >> $GITHUB_OUTPUT
+
   build-and-push:
+    needs: prepare
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -33,10 +51,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set short SHA
-        id: vars
-        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
       - name: Build and push with Docker Bake
         uses: docker/bake-action@v7
         with:
@@ -47,49 +61,62 @@ jobs:
           set: |
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
-            front.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/front:latest
-            front.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/front:${{ steps.vars.outputs.sha_short }}
-            back.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/back:latest
-            back.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/back:${{ steps.vars.outputs.sha_short }}
-            proxy.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/proxy:latest
-            proxy.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/proxy:${{ steps.vars.outputs.sha_short }}
+            front.tags=${{ needs.prepare.outputs.front_image }}:latest
+            front.tags=${{ needs.prepare.outputs.front_image }}:${{ needs.prepare.outputs.sha_short }}
+            back.tags=${{ needs.prepare.outputs.back_image }}:latest
+            back.tags=${{ needs.prepare.outputs.back_image }}:${{ needs.prepare.outputs.sha_short }}
+            proxy.tags=${{ needs.prepare.outputs.proxy_image }}:latest
+            proxy.tags=${{ needs.prepare.outputs.proxy_image }}:${{ needs.prepare.outputs.sha_short }}
 
-#  deploy:
-#    needs: build-and-push
-#    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.ACT != 'true'
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout code (for compose files)
-#        uses: actions/checkout@v4
-#
-#      - name: Copy compose files via SCP
-#        uses: appleboy/scp-action@v0.1.7
-#        with:
-#          host: ${{ secrets.SSH_HOST }}
-#          username: ${{ secrets.SSH_USER }}
-#          key: ${{ secrets.SSH_PRIVATE_KEY }}
-#          source: "compose.yaml,compose.prod.yaml"
-#          target: ${{ secrets.REMOTE_TARGET }}
-#
-#      - name: Deploy to Server via SSH
-#        uses: appleboy/ssh-action@v1.0.3
-#        with:
-#          host: ${{ secrets.SSH_HOST }}
-#          username: ${{ secrets.SSH_USER }}
-#          key: ${{ secrets.SSH_PRIVATE_KEY }}
-#          script: |
-#            cd ${{ secrets.REMOTE_TARGET }}
-#            
-#            # Авторизация в GHCR на сервере
-#            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-#            
-#            # Подготовка окружения
-#            echo "${{ secrets.PROD_ENV }}" > .env
-#            echo "MODE=prod" > .env.local
-#            
-#            # Загрузка новых образов и перезапуск
-#            docker compose -f compose.yaml -f compose.prod.yaml pull
-#            docker compose -f compose.yaml -f compose.prod.yaml up -d --remove-orphans
-#            
-#            # Очистка старых данных
-#            docker image prune -f
+  deploy:
+    needs: [prepare, build-and-push]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code (for compose files)
+        uses: actions/checkout@v6
+
+      - name: Copy compose files via SCP
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "compose.yaml,compose.deploy.override.yaml,.env"
+          target: ${{ secrets.REMOTE_TARGET }}
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ secrets.REMOTE_TARGET }}
+
+            # Авторизация в GHCR
+            echo ${{ secrets.CR_PAT }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+            # Переименование override файла (если он пришел)
+            if [ -f compose.deploy.override.yaml ]; then
+              mv compose.deploy.override.yaml compose.override.yaml
+            fi
+
+            # Гарантируем наличие .env.local
+            touch .env.local
+
+            # Обновление SHA_SHORT в .env.local с датой деплоя
+            DEPLOY_DATE=$(date '+%Y-%m-%d %H:%M:%S')
+            if grep -q "SHA_SHORT=" .env.local; then
+              sed -i "s/^SHA_SHORT=.*/SHA_SHORT=${{ needs.prepare.outputs.sha_short }} # Deployed at $DEPLOY_DATE/" .env.local
+            else
+              echo "SHA_SHORT=${{ needs.prepare.outputs.sha_short }} # Deployed at $DEPLOY_DATE" >> .env.local
+            fi
+
+            # Загрузка новых образов и перезапуск
+            # Теперь docker compose сам подтянет .env и compose.override.yaml
+            docker compose pull
+            docker compose up -d --remove-orphans
+
+            # Очистка старых данных
+            docker image prune -af
