@@ -82,7 +82,7 @@ jobs:
 #          host: ${{ secrets.DOMAIN }}
 #          username: ${{ secrets.SSH_USER }}
 #          key: ${{ secrets.SSH_PRIVATE_KEY }}
-#          source: "compose.yaml,compose.deploy.override.yaml,.env,manage.sh"
+#          source: "compose.yaml,compose.prod.yaml,compose.deploy.yaml,.env,manage.sh"
 #          target: ${{ secrets.REMOTE_TARGET }}
 #
 #      - name: Deploy to Server via SSH
@@ -96,11 +96,6 @@ jobs:
 #
 #            # Авторизация в GHCR
 #            echo ${{ secrets.CR_PAT }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-#
-#            # Переименование override файла (если он пришел)
-#            if [ -f compose.deploy.override.yaml ]; then
-#              mv compose.deploy.override.yaml compose.override.yaml
-#            fi
 #
 #            # Обновление DOMAIN в .env.local на основе секрета DOMAIN
 #            if grep -q "DOMAIN=" .env.local; then
@@ -118,8 +113,8 @@ jobs:
 #            fi
 #
 #            # Загрузка новых образов и перезапуск через наш скрипт
-#            ./manage.sh pull
-#            ./manage.sh up
+#            ./manage.sh prod pull
+#            ./manage.sh prod up
 #
 #            # Очистка старых данных
 #            docker image prune -af
