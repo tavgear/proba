@@ -17,6 +17,13 @@ FROM node:24-slim AS builder
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+ARG API_URL
+ENV API_URL=${API_URL}
+
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+
 WORKDIR /app
 
 COPY --from=dependencies /app/node_modules ./node_modules

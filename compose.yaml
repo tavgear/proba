@@ -6,6 +6,8 @@ services:
   front:
     environment:
       NEXT_TELEMETRY_DISABLED: 1
+      API_URL: http://back:${BACK_HTTP_PORT}
+      NEXT_PUBLIC_API_URL: http://${DOMAIN}:${BACK_HTTP_PORT}
 
   # Strapi
   back:

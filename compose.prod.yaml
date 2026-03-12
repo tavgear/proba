@@ -5,6 +5,9 @@ services:
   front:
     build:
       dockerfile: ./.docker/prod/front/Dockerfile
+      args:
+        API_URL: http://back:${BACK_HTTP_PORT}
+        NEXT_PUBLIC_API_URL: http://${DOMAIN}:${BACK_HTTP_PORT}
     environment:
       NODE_ENV: production
 

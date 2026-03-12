@@ -4,3 +4,6 @@ front/node_modules
 # Next.js build output
 front/.next
 front/out
+
+.env*
+
