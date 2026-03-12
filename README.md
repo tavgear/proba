@@ -74,4 +74,14 @@ cd <название_проекта>
 2. Образы пушатся в GitHub Container Registry (GHCR).
 3. На сервере выполняется команда на обновление контейнеров.
 
+### Настройка GitHub Secrets
+
+Для работы автоматического деплоя необходимо добавить в репозиторий (Settings -> Secrets and variables -> Actions) следующие секреты:
+
+- `DOMAIN`: Доменное имя вашего сервера.
+- `SSH_USER`: Имя пользователя для подключения по SSH.
+- `SSH_PRIVATE_KEY`: Приватный SSH ключ (содержимое файла `~/.ssh/id_rsa`).
+- `REMOTE_TARGET`: Путь к директории проекта на удаленном сервере (например, `/home/user/project`).
+- `CR_PAT`: Personal Access Token (PAT) с правами на чтение пакетов (packages) из GitHub Container Registry.
+
 Для работы деплоя на стороне GitHub должны быть настроены соответствующие Secrets (SSH ключи, адрес сервера и т.д.).
