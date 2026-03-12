@@ -38,27 +38,19 @@ if [[ ! "$1" =~ ^(help|--help|-h|init)$ ]]; then
 fi
 
 # 4. Формирование команды docker compose
-COMPOSE="docker compose --env-file .env"
-# Мы знаем, что для всех команд кроме init .env.local существует. 
-# Для init мы добавим его в COMPOSE позже, если он создастся, или будем использовать аккуратно.
-if [ -f .env.local ]; then
-    COMPOSE="$COMPOSE --env-file .env.local"
-fi
+COMPOSE="docker compose --env-file .env --env-file .env.local"
 
-# Добавляем базовый файл
-COMPOSE="$COMPOSE -f compose.yaml"
-
-# Добавляем специфичный для режима файл
-# compose.prod.yaml - только для локальнгого тестирования прод-контейнеров
 if [ "$MODE" == "dev" ]; then
-    if [ -f "compose.dev.yaml" ]; then
-        COMPOSE="$COMPOSE -f compose.dev.yaml"
-    fi
+    # В режиме разработки подключаем базовый и dev файлы
+    COMPOSE="$COMPOSE -f compose.yaml -f compose.dev.yaml"
 elif [ "$MODE" == "prod" ]; then
-    # На проде compose.prod.yaml не подключаем (он для локальных тестов)
-    # На проде compose.override.yaml подхватывается докером автоматически, 
-    # поэтому явно его здесь не указываем.
-    :
+    # В режиме продакшена:
+    # 1. Если есть compose.prod.yaml (локальная отладка), подключаем его явно
+    if [ -f "compose.prod.yaml" ]; then
+        COMPOSE="$COMPOSE -f compose.yaml -f compose.prod.yaml"
+    fi
+    # 2. Если его нет (сервер), не указываем файлы вообще. 
+    # Docker автоматически подхватит compose.yaml и compose.override.yaml (если есть).
 fi
 
 # Функция генерации секретов
@@ -89,7 +81,21 @@ init_dev() {
     fi
 
     # Системные файлы
-    [ -f .env.local ] || touch .env.local
+    if [ ! -f .env.local ]; then
+        touch .env.local
+    fi
+
+    # Обновление режима в .env.local (игнорируя текущее значение)
+    if grep -q "^MODE=" .env.local; then
+        sed -i "s/^MODE=.*/MODE=dev/" .env.local
+    else
+        echo "MODE=dev" >> .env.local
+    fi
+    if grep -q "^MODE_NODE_ENV=" .env.local; then
+        sed -i "s/^MODE_NODE_ENV=.*/MODE_NODE_ENV=development/" .env.local
+    else
+        echo "MODE_NODE_ENV=development" >> .env.local
+    fi
 
     # Инициализация бэкенда
     if [ "$target" == "all" ] || [ "$target" == "back" ]; then
@@ -132,11 +138,9 @@ init_prod() {
     echo "=== Initialization (PROD mode) ==="
     
     # 0. Check if already initialized
-    if [ -f ".env.local" ] && [ -d "data/uploads" ] && [ -d "data/db" ]; then
-        echo "[!] Project is already initialized in PROD mode."
-        echo "    - .env.local exists"
-        echo "    - Directory 'data/uploads' exists"
-        echo "    - Directory 'data/db' exists"
+    if [ -f ".env.local" ]; then
+        echo "[!] Project is already initialized (found .env.local)."
+        echo "    If you want to re-init with new secrets, please remove .env.local manually."
         exit 0
     fi
 
@@ -173,7 +177,18 @@ MODE_NODE_ENV=production
 EOF
         echo "[OK] .env.local created. PLEASE EDIT REQUIRED FIELDS!"
     else
-        echo "[!] .env.local already exists. Skipping."
+        echo "[!] .env.local already exists. Updating mode settings to PROD."
+    # Обновление режима в .env.local
+    if grep -q "^MODE=" .env.local; then
+        sed -i "s/^MODE=.*/MODE=prod/" .env.local
+    else
+        echo "MODE=prod" >> .env.local
+    fi
+    if grep -q "^MODE_NODE_ENV=" .env.local; then
+        sed -i "s/^MODE_NODE_ENV=.*/MODE_NODE_ENV=production/" .env.local
+    else
+        echo "MODE_NODE_ENV=production" >> .env.local
+    fi
     fi
 }
 
