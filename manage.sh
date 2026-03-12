@@ -32,7 +32,7 @@ elif [[ "$1" =~ ^(help|--help|-h)$ ]] || [ -z "$1" ]; then
     usage 0
 elif [[ "$1" =~ ^(ps)$ ]] || [ -z "$1" ]; then
     docker ps
-    exit 1
+    exit 0
 else
     echo "Error: First argument must be 'dev' or 'prod' (or 'help')."
     echo "Usage: $0 <dev|prod> <command>"
