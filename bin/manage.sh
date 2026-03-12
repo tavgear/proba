@@ -10,9 +10,10 @@ usage() {
     echo "Commands:"
     echo "  init <dev|prod> [back|front] - Initialize project (folders, .env.local secrets)"
     echo "  up              - Start containers (detached)"
+    echo "  build           - Build images"
     echo "  down            - Stop containers"
     echo "  restart         - Restart containers"
-    echo "  pull            - Pull latest images"
+    echo "  pull            - Pull latest images (PROD only)"
     echo "  logs            - Show logs (tail 100)"
     echo "  ps              - List running containers"
     exit "$exit_code"
@@ -256,11 +257,18 @@ case "$1" in
         ;;
     up)
         $COMPOSE up -d --remove-orphans ;;
+    build)
+        $COMPOSE build ;;
     down)
         $COMPOSE down ;;
     restart)
         $COMPOSE restart ;;
     pull)
+        if [ "$MODE" == "dev" ]; then
+            echo "[!] 'pull' command is disabled in DEV mode."
+            echo "    Use 'build' to rebuild images locally or 'up' to start project."
+            exit 0
+        fi
         $COMPOSE pull ;;
     logs)
         $COMPOSE logs -f --tail=100 ;;
