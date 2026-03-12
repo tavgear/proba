@@ -1,5 +1,5 @@
 #!/bin/bash
-# bin/manage.sh
+# manage.sh
 
 set -e
 
@@ -73,7 +73,7 @@ print_header "$1"
 # 3. Проверка наличия .env.local (обязательно для всех команд, кроме help и init)
 if [[ ! "$1" =~ ^(help|--help|-h|init)$ ]]; then
     if [ ! -f .env.local ]; then
-        echo "Error: .env.local not found. Please run './bin/manage.sh init <dev|prod>' first."
+        echo "Error: .env.local not found. Please run './manage.sh init <dev|prod>' first."
         exit 1
     fi
 fi

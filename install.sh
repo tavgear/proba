@@ -3,27 +3,21 @@
 
 set -e
 
-# Проверка наличия аргумента (URL репозитория)
-if [ -z "$1" ]; then
-    echo "Ошибка: Не указан URL репозитория."
-    echo "Использование: curl -sSL <ссылка_на_этот_скрипт> | bash -s -- <REPO_RAW_URL>"
-    echo "Пример: curl ... | bash -s -- https://raw.githubusercontent.com/USER/REPO/main"
-    exit 1
-fi
+# --- ПЕРЕМЕННЫЕ ---
+# Замените эти значения на ваши перед использованием
+GITHUB_USER="ВАШ_ЛОГИН"
+GITHUB_REPO="ВАШ_РЕПО"
+BRANCH="main"
 
-REPO_RAW_URL="$1"
+REPO_RAW_URL="https://raw.githubusercontent.com/$GITHUB_USER/$GITHUB_REPO/$BRANCH"
 
 echo "=== Запуск установки проекта на продакшене ==="
 
-# 1. Создаем необходимые папки
-echo "[+] Создание структуры папок..."
-mkdir -p bin
-
-# 2. Скачиваем ключевые файлы
+# 1. Скачиваем ключевые файлы
 echo "[+] Скачивание файлов из репозитория..."
 
 FILES=(
-    "bin/manage.sh"
+    "manage.sh"
     ".env"
 )
 
@@ -32,13 +26,13 @@ for file in "${FILES[@]}"; do
     curl -sSL "$REPO_RAW_URL/$file" -o "$file"
 done
 
-# 3. Выставляем права на исполнение управляющего скрипта
+# 2. Настройка прав доступа
 echo "[+] Настройка прав доступа..."
-chmod +x bin/manage.sh
+chmod +x manage.sh
 
-# 4. Запускаем встроенную инициализацию (создание .env.local с секретами)
+# 3. Запускаем встроенную инициализацию (создание .env.local с секретами)
 echo "[+] Запуск инициализации..."
-./bin/manage.sh init prod
+./manage.sh init prod
 
 echo "=========================================================="
 echo " УСТАНОВКА ЗАВЕРШЕНА УСПЕШНО! "

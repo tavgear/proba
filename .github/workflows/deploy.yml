@@ -68,58 +68,58 @@ jobs:
             proxy.tags=${{ needs.prepare.outputs.proxy_image }}:latest
             proxy.tags=${{ needs.prepare.outputs.proxy_image }}:${{ needs.prepare.outputs.sha_short }}
 
-  deploy:
-    needs: [prepare, build-and-push]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code (for compose files)
-        uses: actions/checkout@v6
-
-      - name: Copy compose files via SCP
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.DOMAIN }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "compose.yaml,compose.deploy.override.yaml,.env,bin/manage.sh"
-          target: ${{ secrets.REMOTE_TARGET }}
-
-      - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.DOMAIN }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ${{ secrets.REMOTE_TARGET }}
-
-            # Авторизация в GHCR
-            echo ${{ secrets.CR_PAT }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-
-            # Переименование override файла (если он пришел)
-            if [ -f compose.deploy.override.yaml ]; then
-              mv compose.deploy.override.yaml compose.override.yaml
-            fi
-
-            # Обновление DOMAIN в .env.local на основе секрета DOMAIN
-            if grep -q "DOMAIN=" .env.local; then
-              sed -i "s/^DOMAIN=.*/DOMAIN=${{ secrets.DOMAIN }} # Generated from GitHub Secret/" .env.local
-            else
-              echo "DOMAIN=${{ secrets.DOMAIN }} # Generated from GitHub Secret" >> .env.local
-            fi
-
-            # Обновление SHA_SHORT в .env.local с датой деплоя
-            DEPLOY_DATE=$(date '+%Y-%m-%d %H:%M:%S')
-            if grep -q "SHA_SHORT=" .env.local; then
-              sed -i "s/^SHA_SHORT=.*/SHA_SHORT=${{ needs.prepare.outputs.sha_short }} # Deployed at $DEPLOY_DATE/" .env.local
-            else
-              echo "SHA_SHORT=${{ needs.prepare.outputs.sha_short }} # Deployed at $DEPLOY_DATE" >> .env.local
-            fi
-
-            # Загрузка новых образов и перезапуск через наш скрипт
-            ./bin/manage.sh pull
-            ./bin/manage.sh up
-
-            # Очистка старых данных
-            docker image prune -af
+#  deploy:
+#    needs: [prepare, build-and-push]
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout code (for compose files)
+#        uses: actions/checkout@v6
+#
+#      - name: Copy compose files via SCP
+#        uses: appleboy/scp-action@v1.0.0
+#        with:
+#          host: ${{ secrets.DOMAIN }}
+#          username: ${{ secrets.SSH_USER }}
+#          key: ${{ secrets.SSH_PRIVATE_KEY }}
+#          source: "compose.yaml,compose.deploy.override.yaml,.env,manage.sh"
+#          target: ${{ secrets.REMOTE_TARGET }}
+#
+#      - name: Deploy to Server via SSH
+#        uses: appleboy/ssh-action@v1.2.5
+#        with:
+#          host: ${{ secrets.DOMAIN }}
+#          username: ${{ secrets.SSH_USER }}
+#          key: ${{ secrets.SSH_PRIVATE_KEY }}
+#          script: |
+#            cd ${{ secrets.REMOTE_TARGET }}
+#
+#            # Авторизация в GHCR
+#            echo ${{ secrets.CR_PAT }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+#
+#            # Переименование override файла (если он пришел)
+#            if [ -f compose.deploy.override.yaml ]; then
+#              mv compose.deploy.override.yaml compose.override.yaml
+#            fi
+#
+#            # Обновление DOMAIN в .env.local на основе секрета DOMAIN
+#            if grep -q "DOMAIN=" .env.local; then
+#              sed -i "s/^DOMAIN=.*/DOMAIN=${{ secrets.DOMAIN }} # Generated from GitHub Secret/" .env.local
+#            else
+#              echo "DOMAIN=${{ secrets.DOMAIN }} # Generated from GitHub Secret" >> .env.local
+#            fi
+#
+#            # Обновление SHA_SHORT в .env.local с датой деплоя
+#            DEPLOY_DATE=$(date '+%Y-%m-%d %H:%M:%S')
+#            if grep -q "SHA_SHORT=" .env.local; then
+#              sed -i "s/^SHA_SHORT=.*/SHA_SHORT=${{ needs.prepare.outputs.sha_short }} # Deployed at $DEPLOY_DATE/" .env.local
+#            else
+#              echo "SHA_SHORT=${{ needs.prepare.outputs.sha_short }} # Deployed at $DEPLOY_DATE" >> .env.local
+#            fi
+#
+#            # Загрузка новых образов и перезапуск через наш скрипт
+#            ./manage.sh pull
+#            ./manage.sh up
+#
+#            # Очистка старых данных
+#            docker image prune -af

@@ -1,72 +1,77 @@
-# Unistack Template
+# Unistack Project Template (Strapi + Next.js)
 
-**Unistack Template** is a ready-to-go boilerplate for fast building and deploying modern web applications. The template combines a powerful **Symfony** Backend, a flexible **Next.js** Frontend, and a high-performance **FrankenPHP** server (based on Caddy). All components are Dockerized and ready for automated deployment via GitHub Actions.
+Этот шаблон предназначен для быстрой разработки и развертывания веб-приложений с использованием современного стека технологий.
 
-## 1. Creating a Repository
-1. Go to the [tavgear/unistack-template](https://github.com/tavgear/unistack-template) template page.
-2. Click **Use this template** -> **Create a new repository**.
-3. Specify your repository name — this will be your `PROJECT_NAME`.
-   - *Example: `myproject`*
+## Технологический стек
+- **Backend:** Strapi (Node.js)
+- **Frontend:** Next.js
+- **Database:** SQLite
+- **Proxy:** Caddy (с автоматическим SSL)
+- **Orchestration:** Docker Compose
 
-## 2. Server Configuration (Host)
-1. Create a working directory on the server for your project.
-   - *Example command:* `mkdir -p /home/devuser/myproject`
-2. Copy the `.env` file from the repository root to this directory.
-3. Edit `.env` for **Production** mode.
+---
 
-### Mandatory Parameters:
-These values must be set exactly as shown for production operation:
-- `MODE=prod`
-- `MODE_NODE_ENV=production`
+## 🚀 Быстрая инициализация на продакшене
 
-### Customizable Parameters (Examples):
-- `PROJECT_NAME=myproject` — must match your repository name.
-- `GITHUB_USER_NAME=devuser` — your GitHub username.
-- `DOMAIN=mysite.org` — your site's domain.
-- *Also, configure the database (MariaDB) parameters according to your requirements.*
+Для того чтобы развернуть проект на сервере «с нуля», выполните одну команду в папке, где будет лежать проект:
 
-## 3. GitHub Actions Setup
-In your repository settings (**Settings -> Secrets and variables -> Actions**), add the following variables:
-
-### "Repository variables" Section:
-- `PROJECT_DIR`: Absolute path to the project folder on the server.
-  - *Example: `/home/devuser/myproject`*
-- `DOMAIN`: Host domain.
-  - *Example: `mysite.org`*
-
-### "Repository secrets" Section:
-- `DEV_SSH_KEY`: Private part of the SSH key for server access (add the public part to `~/.ssh/authorized_keys` on the server).
-- `DEV_USER`: Username on the server.
-  - *Example: `devuser`*
-
-## 4. Local Development
-1. Clone the created repository to your local machine:
-   ```bash
-   git clone git@github.com:<YOUR_GITHUB_LOGIN>/<PROJECT_NAME>.git
-   cd <PROJECT_NAME>
-   ```
-2. Initialize the project (download Symfony and Next.js skeletons):
-   ```bash
-   make init
-   ```
-3. Edit a `.env.local` file in the project root and specify basic variables (the same as on the server):
-   - `PROJECT_NAME`
-   - `GITHUB_USER_NAME`
-   - *If necessary, add other local settings, overriding values from the main `.env`.*
-
-4. Build and run the containers:
-   ```bash
-   make build
-   make up
-   ```
-
-## 5. Deployment
-To trigger the deployment, simply push your changes to the `main` branch:
 ```bash
-git push origin main
+curl -sSL https://raw.githubusercontent.com/ВАШ_ЛОГИН/ВАШ_РЕПО/main/install.sh | bash
 ```
-GitHub Actions will automatically build Docker images, push them to the Registry, and update the project on the server.
 
-**Project URLs after deployment:**
-- **Frontend:** `https://<YOUR_DOMAIN>`
-- **Backend (API):** `https://<YOUR_DOMAIN>/api/`
+### Что делает эта команда:
+1. Скачивает управляющий скрипт `manage.sh` и базовый `.env`.
+2. Генерирует файл `.env.local` с уникальными секретами для Strapi.
+3. Настраивает права доступа.
+
+### После выполнения команды:
+1. Откройте созданный файл `.env.local` и заполните обязательные поля:
+   - `PROJECT_NAME`: Название вашего проекта.
+   - `DOMAIN`: Ваш реальный домен (например, `mysite.com`).
+2. Сделайте **Push** в ваш репозиторий — после этого настроенный CI/CD (GitHub Actions) автоматически соберет образы и запустит проект на сервере.
+
+---
+
+## 💻 Локальная разработка
+
+### 1. Клонирование и инициализация
+```bash
+git clone <URL_репозитория>
+cd <название_проекта>
+./manage.sh init dev
+```
+
+### 2. Настройка окружения
+После инициализации будет создан файл `.env.local`. Убедитесь, что в нем указаны правильные значения для локальной работы (по умолчанию `MODE=dev` и `DOMAIN=localhost`).
+
+### 3. Запуск
+```bash
+./manage.sh up
+```
+Проект будет доступен по адресу:
+- Frontend: `http://localhost`
+- Backend (Strapi Admin): `http://localhost:1337/admin`
+
+---
+
+## 🛠 Управление проектом
+
+Для удобства используется скрипт `manage.sh`. Основные команды:
+
+- `./manage.sh up` — запуск контейнеров в фоновом режиме.
+- `./manage.sh down` — остановка контейнеров.
+- `./manage.sh build` — сборка образов.
+- `./manage.sh logs` — просмотр логов.
+- `./manage.sh ps` — статус запущенных контейнеров.
+- `./manage.sh pull` — скачивание свежих образов из Registry (только для PROD).
+
+---
+
+## 📦 Автоматический деплой
+
+Деплой настроен через GitHub Actions. При пуше в ветку `main`:
+1. Собираются Docker-образы для фронтенда, бэкенда и прокси.
+2. Образы пушатся в GitHub Container Registry (GHCR).
+3. На сервере выполняется команда на обновление контейнеров.
+
+Для работы деплоя на стороне GitHub должны быть настроены соответствующие Secrets (SSH ключи, адрес сервера и т.д.).

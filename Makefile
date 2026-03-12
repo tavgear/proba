@@ -32,7 +32,7 @@ generate-env-dev: ## Generate local environments
 	@if [ -f .env.local ]; then
 		echo ".env.local already exists"
 	else
-		echo "MODE=prod" > .env.local
+		echo "MODE=dev" > .env.local
 		echo "MODE_NODE_ENV=production" >> .env.local
 		echo "" >> .env.local
 		echo "APP_KEYS=$$(openssl rand -base64 16),$$(openssl rand -base64 16),$$(openssl rand -base64 16),$$(openssl rand -base64 16)" >> .env.local
