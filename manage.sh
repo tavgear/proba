@@ -156,8 +156,6 @@ init_dev() {
 
 # --- REQUIRED: EDIT MANUALLY ---
 PROJECT_NAME=
-GITHUB_USER_NAME=
-DOMAIN=
 
 # Front network settings
 HTTP_PORT=$HTTP_PORT
