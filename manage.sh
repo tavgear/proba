@@ -145,11 +145,6 @@ EOF
     else
         echo "MODE=dev" >> .env.local
     fi
-    if grep -q "^MODE_NODE_ENV=" .env.local; then
-        sed -i "s/^MODE_NODE_ENV=.*/MODE_NODE_ENV=development/" .env.local
-    else
-        echo "MODE_NODE_ENV=development" >> .env.local
-    fi
 
     # Добавляем секреты если их нет (например если файл был создан вручную или старым скриптом)
     if ! grep -q "^STRAPI_APP_KEYS=" .env.local; then
@@ -241,7 +236,6 @@ STRAPI_ENCRYPTION_KEY=$STRAPI_ENCRYPTION_KEY
 
 # --- DEFAULT SETTINGS ---
 MODE=prod
-MODE_NODE_ENV=production
 EOF
         echo "[OK] .env.local created. PLEASE EDIT REQUIRED FIELDS!"
     else
@@ -251,11 +245,6 @@ EOF
         sed -i "s/^MODE=.*/MODE=prod/" .env.local
     else
         echo "MODE=prod" >> .env.local
-    fi
-    if grep -q "^MODE_NODE_ENV=" .env.local; then
-        sed -i "s/^MODE_NODE_ENV=.*/MODE_NODE_ENV=production/" .env.local
-    else
-        echo "MODE_NODE_ENV=production" >> .env.local
     fi
     fi
 }
