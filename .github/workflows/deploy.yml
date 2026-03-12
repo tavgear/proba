@@ -61,13 +61,15 @@ jobs:
           set: |
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
-            front.tags=${{ needs.prepare.outputs.front_image }}:latest
-            front.tags=${{ needs.prepare.outputs.front_image }}:${{ needs.prepare.outputs.sha_short }}
-            back.tags=${{ needs.prepare.outputs.back_image }}:latest
-            back.tags=${{ needs.prepare.outputs.back_image }}:${{ needs.prepare.outputs.sha_short }}
-            proxy.tags=${{ needs.prepare.outputs.proxy_image }}:latest
-            proxy.tags=${{ needs.prepare.outputs.proxy_image }}:${{ needs.prepare.outputs.sha_short }}
-
+            front.cache-from=type=gha,scope=front
+            front.cache-to=type=gha,mode=max,scope=front
+            back.cache-from=type=gha,scope=back
+            back.cache-to=type=gha,mode=max,scope=back
+            proxy.cache-from=type=gha,scope=proxy
+            proxy.cache-to=type=gha,mode=max,scope=proxy
+            front.tags=${{ needs.prepare.outputs.front_image }}:latest,${{ needs.prepare.outputs.front_image }}:${{ needs.prepare.outputs.sha_short }}
+            back.tags=${{ needs.prepare.outputs.back_image }}:latest,${{ needs.prepare.outputs.back_image }}:${{ needs.prepare.outputs.sha_short }}
+            proxy.tags=${{ needs.prepare.outputs.proxy_image }}:latest,${{ needs.prepare.outputs.proxy_image }}:${{ needs.prepare.outputs.sha_short }}
   deploy:
     needs: [prepare, build-and-push]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
